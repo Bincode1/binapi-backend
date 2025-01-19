@@ -1,0 +1,51 @@
+spring:
+  application:
+    name: binapi-backend
+  # MySQL 数据库连接配置
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/binapi?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
+    username: root
+    password: 123456
+# 服务接口配置
+server:
+  address: 0.0.0.0
+  port: 8080
+  servlet:
+    context-path: /
+    # cookie 30 ???
+    session:
+      cookie:
+        max-age: 2592000
+        domain: localhost
+# swagger 接口配置
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+  group-configs:
+    - group: 'default'
+      paths-to-match: '/**'
+      packages-to-scan: com.bin.binapibackend.controller
+# knife4j增强配置
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
+# dubbo配置
+dubbo:
+  application:
+    qosPort: 4444
+    name: dubbo-provider
+    logger: slf4j
+  protocol:
+    name: dubbo
+    port: 50052
+  registry:
+    address: nacos://${nacos.address:127.0.0.1}:8848?username=nacos&password=nacos
