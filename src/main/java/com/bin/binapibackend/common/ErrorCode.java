@@ -13,6 +13,7 @@ public enum ErrorCode implements Serializable {
     NOT_FOUND_ERROR(40002, "空指针错误", ""),
     NO_LOGIN(40100, "未登录", ""),
     NO_AUTH(40101, "无权限", ""),
+    NO_test(4021, "42", ""),
     SYSTEM_ERROR(50000, "系统内部异常", ""),
     OPERATION_ERROR(50001, "操作失败", "");
 
