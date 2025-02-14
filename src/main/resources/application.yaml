@@ -10,6 +10,13 @@ spring:
     url: jdbc:mysql://localhost:3306/binapi?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
     username: root
     password: 123456
+  # Redis 配置
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      database: 2
+      connect-timeout: 1800000  # 连接超时时间（毫秒）
 # 服务接口配置
 server:
   address: 0.0.0.0

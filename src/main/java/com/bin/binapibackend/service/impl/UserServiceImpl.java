@@ -3,6 +3,7 @@ package com.bin.binapibackend.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.bin.binapibackend.common.ErrorCode;
+import com.bin.binapibackend.common.RedisUtils;
 import com.bin.binapibackend.exception.BusinessException;
 import com.bin.binapibackend.mapper.UserMapper;
 import com.bin.binapibackend.model.UserVO;
@@ -10,8 +11,10 @@ import com.bin.binapibackend.model.dto.LoginRequest;
 import com.bin.binapibackend.model.dto.RegisterRequest;
 import com.bin.binapibackend.service.UserService;
 import com.bin.bincommon.model.User;
+import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.security.MessageDigest;
@@ -36,6 +39,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public UserServiceImpl(UserMapper userMapper) {
         this.userMapper = userMapper;
     }
+
+    @Resource
+    private RedisUtils redisUtils;
 
     @Override
     public UserVO getSafetyUser(User user) {
@@ -88,7 +94,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         queryWrapper.eq("useraccount", userAccount);
         User user = userMapper.selectOne(queryWrapper);
         UserVO safetyUser = this.getSafetyUser(user);
-        request.getSession().setAttribute(USER_LOGIN_STATE, safetyUser);
+        redisUtils.save(USER_LOGIN_STATE, safetyUser);
+//        request.getSession().setAttribute(USER_LOGIN_STATE, safetyUser);
         return safetyUser;
     }
 
@@ -172,7 +179,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public UserVO getCurrentUser(HttpServletRequest request) {
-        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
+        Object userObj = redisUtils.get(USER_LOGIN_STATE);
+//        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
         UserVO currentUser = (UserVO) userObj;
         if (currentUser == null) {
             throw new BusinessException(ErrorCode.NO_AUTH);
@@ -184,7 +192,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public User getLoginUser(HttpServletRequest request) {
-        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
+        Object userObj = redisUtils.get(USER_LOGIN_STATE);
+//        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
         UserVO currentUser = (UserVO) userObj;
         if (currentUser == null) {
             throw new BusinessException(ErrorCode.NO_AUTH);
@@ -195,7 +204,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     public boolean isAdmin(HttpServletRequest request) {
         // 仅管理员可查询
-        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
+//        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
+        Object userObj = redisUtils.get(USER_LOGIN_STATE);
         UserVO userVO = (UserVO) userObj;
         return userVO != null && userVO.getUserrole() == ADMIN_ROLE;
     }

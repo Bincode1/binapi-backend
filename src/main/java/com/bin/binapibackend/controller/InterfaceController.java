@@ -23,6 +23,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.UnsupportedEncodingException;
 import java.util.List;
 
 @RestController
@@ -171,7 +172,7 @@ public class InterfaceController {
         // todo 判断接口是否可以调用
         com.bin.binapiclientsdk.model.User user = new com.bin.binapiclientsdk.model.User();
         user.setUsername("binbin");
-        String result = binApiClient.getUsernameByPost(user);
+        String result = binApiClient.getUsernameByPost("");
         if (StringUtils.isBlank(result)) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "接口验证失败");
         }
@@ -229,8 +230,7 @@ public class InterfaceController {
         }
 
         long id = interfaceInvokeRequest.getId();
-        String userRequestparams = interfaceInvokeRequest.getUserRequestparams();
-        // 判断是否存在
+        // 判断所请求的接口是否存在
         InterfaceInfo interfaceInfo = interfaceInfoService.getById(id);
         if (interfaceInfo == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
@@ -238,6 +238,8 @@ public class InterfaceController {
         if (interfaceInfo.getStatus() != 1) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "接口未发布");
         }
+
+        // 判断登录用户对该接口是否还有可调用次数
         User user = userService.getLoginUser(request);
         QueryWrapper<UserInterfaceInfo> userInterfaceInfoQueryWrapper = new QueryWrapper();
         userInterfaceInfoQueryWrapper.eq("userId", user.getId());
@@ -249,14 +251,28 @@ public class InterfaceController {
         if (userInterfaceInfo.getLeftnum() < 1) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "接口剩余次数不足");
         }
+
         String accesskey = user.getAccesskey();
         String secretkey = user.getSecretkey();
         // todo 根据用户提供的调用地址来调用不同的方法
-        BinApiClient tempClient = new BinApiClient(accesskey, secretkey);
-        Gson gson = new Gson();
-        com.bin.binapiclientsdk.model.User requestUser = gson.fromJson(userRequestparams, com.bin.binapiclientsdk.model.User.class);
 
-        String usernameByPost = tempClient.getUsernameByPost(requestUser);
-        return ResultUtils.success(usernameByPost);
+        String userRequestparams = interfaceInvokeRequest.getUserRequestparams();
+//        try {
+//            byte[] utf8Bytes = userRequestparams.getBytes("UTF-8");
+//            utf8String = new String(utf8Bytes, "UTF-8");
+//        } catch (UnsupportedEncodingException e) {
+//            e.printStackTrace();
+//            return ResultUtils.error(ErrorCode.PARAMS_ERROR, "编码错误");
+//        }
+        System.out.println("--------------------100000" + userRequestparams);
+        Gson gson = new Gson();
+        String s = gson.fromJson(userRequestparams, String.class);
+//        com.bin.binapiclientsdk.model.User requestUser = gson.fromJson(userRequestparams, com.bin.binapiclientsdk.model.User.class);
+        // 创建调用第三方接口的客户端
+        BinApiClient tempClient = new BinApiClient(accesskey, secretkey);
+        // 使用客户端去调用用户真实需要调用的接口（模拟接口，也就是binapi-interface中的接口）
+//        String usernameByPost = tempClient.getUsernameByPost(utf8String);
+        String aiAskByPost = tempClient.getMoonshotResponse(s);
+        return ResultUtils.success(aiAskByPost);
     }
 }
