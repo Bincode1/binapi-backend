@@ -20,7 +20,7 @@ spring:
 # 服务接口配置
 server:
   address: 0.0.0.0
-  port: 8080
+  port: 8101
   servlet:
     context-path: /
     # cookie 30 ???
@@ -56,3 +56,6 @@ dubbo:
     port: 50052
   registry:
     address: nacos://${nacos.address:127.0.0.1}:8848?username=nacos&password=nacos
+# 跨域配置
+cors:
+  allowed-origins: "http://localhost:8000"

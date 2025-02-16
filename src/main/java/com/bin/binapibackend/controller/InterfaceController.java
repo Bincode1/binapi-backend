@@ -257,22 +257,56 @@ public class InterfaceController {
         // todo 根据用户提供的调用地址来调用不同的方法
 
         String userRequestparams = interfaceInvokeRequest.getUserRequestparams();
-//        try {
-//            byte[] utf8Bytes = userRequestparams.getBytes("UTF-8");
-//            utf8String = new String(utf8Bytes, "UTF-8");
-//        } catch (UnsupportedEncodingException e) {
-//            e.printStackTrace();
-//            return ResultUtils.error(ErrorCode.PARAMS_ERROR, "编码错误");
-//        }
         System.out.println("--------------------100000" + userRequestparams);
-        Gson gson = new Gson();
-        String s = gson.fromJson(userRequestparams, String.class);
-//        com.bin.binapiclientsdk.model.User requestUser = gson.fromJson(userRequestparams, com.bin.binapiclientsdk.model.User.class);
         // 创建调用第三方接口的客户端
         BinApiClient tempClient = new BinApiClient(accesskey, secretkey);
         // 使用客户端去调用用户真实需要调用的接口（模拟接口，也就是binapi-interface中的接口）
 //        String usernameByPost = tempClient.getUsernameByPost(utf8String);
-        String aiAskByPost = tempClient.getMoonshotResponse(s);
+        String aiAskByPost = tempClient.getMoonshotResponse(userRequestparams);
+        System.out.println(aiAskByPost);
         return ResultUtils.success(aiAskByPost);
+    }
+
+
+    @PostMapping("/cost")
+    public BaseResponse<Boolean> costInterface(@RequestBody InterfaceCostRequest interfaceCostRequest, HttpServletRequest request) {
+
+        long interfaceId = interfaceCostRequest.getId();
+        if (interfaceCostRequest == null || interfaceId <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求参数错误");
+        }
+        // 判断所请求的接口是否存在
+        InterfaceInfo interfaceInfo = interfaceInfoService.getById(interfaceId);
+        if (interfaceInfo == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+        }
+        if (interfaceInfo.getStatus() != 1) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "接口未发布");
+        }
+        // 判断登录用户对该接口是否还有可调用次数
+        User user = userService.getLoginUser(request);
+        QueryWrapper<UserInterfaceInfo> userInterfaceInfoQueryWrapper = new QueryWrapper();
+        Long userId = user.getId();
+        userInterfaceInfoQueryWrapper.eq("userId", userId);
+        userInterfaceInfoQueryWrapper.eq("interfaceInfoId", interfaceId);
+        UserInterfaceInfo userInterfaceInfo = userInterfaceInfoMapper.selectOne(userInterfaceInfoQueryWrapper);
+
+        // 如果用户和该接口的关联不存在，先创建关联， 然后分配10次
+        if (userInterfaceInfo == null) {
+            UserInterfaceInfo newUserInterfaceInfo = new UserInterfaceInfo();
+            newUserInterfaceInfo.setUserid(userId);
+            newUserInterfaceInfo.setInterfaceinfoid(interfaceId);
+            newUserInterfaceInfo.setLeftnum(10);
+        }
+
+        if(userInterfaceInfo.getLeftnum() >= 10){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "调用次数剩余过多，无法申请");
+        }
+        // 如果用户调用次数小于10次，则可以免费申请10次
+        if (userInterfaceInfo.getLeftnum() < 10) {
+            userInterfaceInfo.setLeftnum(userInterfaceInfo.getLeftnum() +10);
+            userInterfaceInfoMapper.updateById(userInterfaceInfo);
+        }
+        return ResultUtils.success(true);
     }
 }

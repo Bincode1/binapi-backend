@@ -19,4 +19,10 @@ public interface UserConstant {
      */
     int ADMIN_ROLE = 1;
 
+
+    /**
+     *  Ak / Sk SALT
+     */
+    String SALT = "binbinCrazy";
+
 }

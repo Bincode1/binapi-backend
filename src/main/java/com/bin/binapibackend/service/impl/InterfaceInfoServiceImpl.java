@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.bin.binapibackend.common.ErrorCode;
+import com.bin.binapibackend.common.RedisUtils;
 import com.bin.binapibackend.exception.BusinessException;
 import com.bin.binapibackend.mapper.InterfaceInfoMapper;
 import com.bin.binapibackend.model.UserVO;
@@ -12,6 +13,7 @@ import com.bin.binapibackend.model.dto.InterfaceInfoUpdateRequest;
 import com.bin.binapibackend.service.InterfaceInfoService;
 import com.bin.binapibackend.service.UserService;
 import com.bin.bincommon.model.InterfaceInfo;
+import jakarta.annotation.Resource;
 import org.apache.commons.beanutils.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -30,6 +32,8 @@ public class InterfaceInfoServiceImpl extends ServiceImpl<InterfaceInfoMapper, I
     @Autowired
     UserService userService;
 
+    @Autowired
+    RedisUtils redisUtils;
     @Override
     public List<InterfaceInfo> getAllInterface() {
         List<InterfaceInfo> list = this.list();
@@ -47,6 +51,11 @@ public class InterfaceInfoServiceImpl extends ServiceImpl<InterfaceInfoMapper, I
 
     @Override
     public IPage<InterfaceInfo> getAllInterfaceByPage(long pageNum, long pageSize) {
+        String key = ""+pageNum;
+        Object o = redisUtils.get(key);
+        if (o != null) {
+            return (IPage<InterfaceInfo>) o;
+        }
         // 创建分页对象
         IPage<InterfaceInfo> interfacePage = new Page<>(pageNum, pageSize);
 
@@ -56,7 +65,7 @@ public class InterfaceInfoServiceImpl extends ServiceImpl<InterfaceInfoMapper, I
 
         // 执行分页查询
         page(interfacePage, queryWrapper);
-
+        redisUtils.save(key, interfacePage);
         return interfacePage;
     }
 
