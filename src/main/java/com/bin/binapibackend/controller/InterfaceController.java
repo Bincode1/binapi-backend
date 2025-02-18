@@ -2,6 +2,7 @@ package com.bin.binapibackend.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.bin.binapibackend.ai.HunYuanApiClient;
 import com.bin.binapibackend.common.BaseResponse;
 import com.bin.binapibackend.common.ErrorCode;
 import com.bin.binapibackend.common.ResultUtils;
@@ -15,7 +16,6 @@ import com.bin.binapiclientsdk.client.BinApiClient;
 import com.bin.bincommon.model.InterfaceInfo;
 import com.bin.bincommon.model.User;
 import com.bin.bincommon.model.UserInterfaceInfo;
-import com.google.gson.Gson;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.beanutils.BeanUtils;
@@ -23,7 +23,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.UnsupportedEncodingException;
 import java.util.List;
 
 @RestController
@@ -235,10 +234,10 @@ public class InterfaceController {
         if (interfaceInfo == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
         }
+        System.out.println("------------------invoke层面的校验接口-------------:" + System.currentTimeMillis());
         if (interfaceInfo.getStatus() != 1) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "接口未发布");
         }
-
         // 判断登录用户对该接口是否还有可调用次数
         User user = userService.getLoginUser(request);
         QueryWrapper<UserInterfaceInfo> userInterfaceInfoQueryWrapper = new QueryWrapper();
@@ -258,13 +257,9 @@ public class InterfaceController {
 
         String userRequestparams = interfaceInvokeRequest.getUserRequestparams();
         System.out.println("--------------------100000" + userRequestparams);
-        // 创建调用第三方接口的客户端
-        BinApiClient tempClient = new BinApiClient(accesskey, secretkey);
-        // 使用客户端去调用用户真实需要调用的接口（模拟接口，也就是binapi-interface中的接口）
-//        String usernameByPost = tempClient.getUsernameByPost(utf8String);
-        String aiAskByPost = tempClient.getMoonshotResponse(userRequestparams);
-        System.out.println(aiAskByPost);
-        return ResultUtils.success(aiAskByPost);
+        HunYuanApiClient hunYuanApiClient = new HunYuanApiClient(accesskey, secretkey);
+        String result = hunYuanApiClient.callClient(userRequestparams);
+        return ResultUtils.success(result);
     }
 
 
@@ -299,14 +294,25 @@ public class InterfaceController {
             newUserInterfaceInfo.setLeftnum(10);
         }
 
-        if(userInterfaceInfo.getLeftnum() >= 10){
+        if (userInterfaceInfo.getLeftnum() >= 10) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "调用次数剩余过多，无法申请");
         }
         // 如果用户调用次数小于10次，则可以免费申请10次
         if (userInterfaceInfo.getLeftnum() < 10) {
-            userInterfaceInfo.setLeftnum(userInterfaceInfo.getLeftnum() +10);
+            userInterfaceInfo.setLeftnum(userInterfaceInfo.getLeftnum() + 10);
             userInterfaceInfoMapper.updateById(userInterfaceInfo);
         }
         return ResultUtils.success(true);
+    }
+
+    @PostMapping("/hunyuan/chat")
+    public BaseResponse<String> hunyuanChat(@RequestParam String userMessage, HttpServletRequest request) {
+
+        System.out.println("------------请求完成啦");
+        User loginUser = userService.getLoginUser(request);
+        String accesskey = loginUser.getAccesskey();
+        String secretkey = loginUser.getSecretkey();
+        HunYuanApiClient hunYuanApiClient = new HunYuanApiClient(accesskey, secretkey);
+        return ResultUtils.success(hunYuanApiClient.callClient(userMessage));
     }
 }

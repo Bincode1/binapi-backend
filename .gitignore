@@ -3,8 +3,8 @@ target/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
-aplication-prod.yaml
-aplication-test.yaml
+application-prod.yaml
+application-test.yaml
 ### STS ###
 .apt_generated
 .classpath
@@ -32,3 +32,6 @@ build/
 
 ### VS Code ###
 .vscode/
+src/main/resources/application-prod.yaml
+src/main/resources/application-prod.yaml
+src/main/resources/application-prod.yaml
